@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "No auth returns 401",
+      "method": "POST",
+      "path": "/",
+      "body": {"prompt": "платформер"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "Требуется авторизация"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

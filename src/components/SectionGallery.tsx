@@ -1,7 +1,13 @@
 import Icon from "@/components/ui/icon";
 import { neonColors, GALLERY_GAMES, NeonLabel, SectionTitle } from "@/components/shared";
+import { useAuth } from "@/context/AuthContext";
 
-export default function SectionGallery() {
+interface SectionGalleryProps {
+  onAuthOpen: (tab?: "login" | "register") => void;
+}
+
+export default function SectionGallery({ onAuthOpen }: SectionGalleryProps) {
+  const { user } = useAuth();
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <SectionTitle accent="magenta">Галерея игр</SectionTitle>
@@ -56,7 +62,12 @@ export default function SectionGallery() {
                   <Icon name="Play" size={12} />
                   {game.plays} играют
                 </div>
-                <button className="font-ibm text-xs px-3 py-1 clip-corner-sm" style={{ background: `${neonColors[game.color]}20`, color: neonColors[game.color] }}>
+                <button
+                  onClick={() => !user && onAuthOpen("login")}
+                  className="font-ibm text-xs px-3 py-1 clip-corner-sm flex items-center gap-1 transition-all"
+                  style={{ background: `${neonColors[game.color]}20`, color: neonColors[game.color] }}
+                >
+                  {!user && <Icon name="Lock" size={11} />}
                   Играть
                 </button>
               </div>

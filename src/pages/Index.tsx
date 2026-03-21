@@ -6,64 +6,15 @@ import SectionGallery from "@/components/SectionGallery";
 import SectionDocs from "@/components/SectionDocs";
 import SectionCommunity from "@/components/SectionCommunity";
 import SectionFaq from "@/components/SectionFaq";
+import AuthModal from "@/components/AuthModal";
+import { AuthProvider } from "@/context/AuthContext";
 
-const GENERATED_CODE_TEMPLATE = (prompt: string) => `// 🎮 Игра: "${prompt}"
-// Сгенерировано NexGen AI
-
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-class Player {
-  constructor() {
-    this.x = canvas.width / 2;
-    this.y = canvas.height - 60;
-    this.speed = 5;
-    this.color = '#00ffff';
-  }
-  
-  update(keys) {
-    if (keys['ArrowLeft']) this.x -= this.speed;
-    if (keys['ArrowRight']) this.x += this.speed;
-  }
-  
-  draw() {
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = this.color;
-    ctx.fillStyle = this.color;
-    ctx.fillRect(this.x - 15, this.y - 15, 30, 30);
-  }
-}
-
-// Инициализация игры...
-const player = new Player();
-const keys = {};
-
-document.addEventListener('keydown', e => keys[e.key] = true);
-document.addEventListener('keyup', e => keys[e.key] = false);
-
-function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  player.update(keys);
-  player.draw();
-  requestAnimationFrame(gameLoop);
-}
-
-gameLoop();`;
-
-export default function Index() {
+function AppContent() {
   const [activeSection, setActiveSection] = useState("home");
-  const [editorPrompt, setEditorPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState("");
+  const [authModal, setAuthModal] = useState<{ open: boolean; tab: "login" | "register" }>({ open: false, tab: "login" });
 
-  const handleGenerate = () => {
-    if (!editorPrompt.trim()) return;
-    setIsGenerating(true);
-    setGeneratedCode("");
-    setTimeout(() => {
-      setIsGenerating(false);
-      setGeneratedCode(GENERATED_CODE_TEMPLATE(editorPrompt));
-    }, 2200);
+  const openAuth = (tab: "login" | "register" = "login") => {
+    setAuthModal({ open: true, tab });
   };
 
   return (
@@ -81,20 +32,12 @@ export default function Index() {
         style={{ background: "radial-gradient(circle, #ff00ff22, transparent 70%)" }}
       />
 
-      <Navbar activeSection={activeSection} setActiveSection={setActiveSection} />
+      <Navbar activeSection={activeSection} setActiveSection={setActiveSection} onAuthOpen={openAuth} />
 
       <main className="pt-16">
         {activeSection === "home" && <SectionHome setActiveSection={setActiveSection} />}
-        {activeSection === "editor" && (
-          <SectionEditor
-            editorPrompt={editorPrompt}
-            setEditorPrompt={setEditorPrompt}
-            isGenerating={isGenerating}
-            generatedCode={generatedCode}
-            handleGenerate={handleGenerate}
-          />
-        )}
-        {activeSection === "gallery" && <SectionGallery />}
+        {activeSection === "editor" && <SectionEditor onAuthOpen={openAuth} />}
+        {activeSection === "gallery" && <SectionGallery onAuthOpen={openAuth} />}
         {activeSection === "docs" && <SectionDocs />}
         {activeSection === "community" && <SectionCommunity />}
         {activeSection === "faq" && <SectionFaq />}
@@ -117,6 +60,21 @@ export default function Index() {
           </div>
         </div>
       </footer>
+
+      {authModal.open && (
+        <AuthModal
+          defaultTab={authModal.tab}
+          onClose={() => setAuthModal({ ...authModal, open: false })}
+        />
+      )}
     </div>
+  );
+}
+
+export default function Index() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

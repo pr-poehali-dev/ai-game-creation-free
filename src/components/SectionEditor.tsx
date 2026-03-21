@@ -1,24 +1,69 @@
+import { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { neonColors, NeonLabel, SectionTitle } from "@/components/shared";
+import { useAuth } from "@/context/AuthContext";
+
+const AI_GENERATE_URL = "https://functions.poehali.dev/39359649-61a8-4745-836e-a40e41f69c3a";
 
 interface SectionEditorProps {
-  editorPrompt: string;
-  setEditorPrompt: (v: string) => void;
-  isGenerating: boolean;
-  generatedCode: string;
-  handleGenerate: () => void;
+  onAuthOpen: (tab?: "login" | "register") => void;
 }
 
-export default function SectionEditor({
-  editorPrompt,
-  setEditorPrompt,
-  isGenerating,
-  generatedCode,
-  handleGenerate,
-}: SectionEditorProps) {
+export default function SectionEditor({ onAuthOpen }: SectionEditorProps) {
+  const { user, token } = useAuth();
+  const [editorPrompt, setEditorPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [gameRunning, setGameRunning] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  const handleGenerate = async () => {
+    if (!editorPrompt.trim()) return;
+    if (!user) { onAuthOpen("login"); return; }
+    setIsGenerating(true);
+    setGeneratedCode("");
+    setAiError("");
+    setGameRunning(false);
+    try {
+      const r = await fetch(AI_GENERATE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt: editorPrompt }),
+      });
+      const data = await r.json();
+      if (data.error) { setAiError(data.error); }
+      else { setGeneratedCode(data.code); }
+    } catch {
+      setAiError("Ошибка соединения. Попробуйте ещё раз.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRunGame = () => {
+    if (!user) { onAuthOpen("login"); return; }
+    setGameRunning(true);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <SectionTitle accent="cyan">ИИ-редактор игр</SectionTitle>
+
+      {/* Auth notice */}
+      {!user && (
+        <div
+          className="flex items-center gap-3 px-5 py-4 border clip-corner mb-8"
+          style={{ borderColor: "rgba(255,200,0,0.3)", background: "rgba(255,200,0,0.05)" }}
+        >
+          <Icon name="Lock" size={18} style={{ color: "#ffcc00", flexShrink: 0 }} />
+          <p className="font-ibm text-sm text-white/60">
+            Для генерации и запуска игр нужен аккаунт.{" "}
+            <button onClick={() => onAuthOpen("register")} className="underline transition-colors hover:opacity-80" style={{ color: "#ffcc00" }}>
+              Зарегистрироваться бесплатно
+            </button>
+          </p>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Left: prompt */}
@@ -70,8 +115,8 @@ export default function SectionEditor({
               </>
             ) : (
               <>
-                <Icon name="Sparkles" size={20} />
-                Создать игру
+                <Icon name={user ? "Sparkles" : "Lock"} size={20} />
+                {user ? "Создать игру" : "Войдите для генерации"}
               </>
             )}
           </button>
@@ -94,46 +139,82 @@ export default function SectionEditor({
           </div>
         </div>
 
-        {/* Right: code output */}
+        {/* Right: output / game */}
         <div className="border clip-corner overflow-hidden" style={{ borderColor: "rgba(0,255,255,0.15)", background: "rgba(0,0,0,0.4)" }}>
           <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "rgba(0,255,255,0.1)" }}>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full" style={{ background: "#00ff88", boxShadow: "0 0 6px #00ff88" }} />
-              <span className="font-mono text-xs text-white/40">output.js</span>
+              <span className="font-mono text-xs text-white/40">{gameRunning ? "game.js [RUNNING]" : "output.js"}</span>
             </div>
             <NeonLabel color="cyan">NEXGEN AI</NeonLabel>
           </div>
-          <div className="p-6 h-[400px] overflow-auto">
-            {!generatedCode && !isGenerating && (
-              <div className="h-full flex flex-col items-center justify-center gap-4 text-center">
+
+          <div className="h-[400px] overflow-auto relative">
+            {/* Empty state */}
+            {!generatedCode && !isGenerating && !aiError && (
+              <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-6">
                 <div className="w-16 h-16 flex items-center justify-center clip-corner" style={{ border: "1px solid rgba(0,255,255,0.15)", background: "rgba(0,255,255,0.05)" }}>
                   <Icon name="Code2" size={28} style={{ color: "rgba(0,255,255,0.4)" }} />
                 </div>
                 <p className="font-ibm text-sm text-white/25">
-                  Опишите игру слева и нажмите «Создать» — ИИ сгенерирует код здесь
+                  {user ? "Опишите игру слева и нажмите «Создать» — GPT напишет код здесь" : "Войдите в аккаунт, чтобы генерировать игры с ИИ"}
                 </p>
               </div>
             )}
+
+            {/* Generating */}
             {isGenerating && (
               <div className="h-full flex flex-col items-center justify-center gap-4">
                 <div className="w-12 h-12 border-2 rounded-full animate-spin" style={{ borderColor: "rgba(0,255,255,0.3)", borderTopColor: "#00ffff" }} />
-                <div className="font-mono text-xs text-white/40">Нейросеть пишет код...</div>
+                <div className="font-mono text-xs text-white/40">GPT-4o пишет код...</div>
               </div>
             )}
-            {generatedCode && (
-              <pre className="font-mono text-xs text-white/70 leading-relaxed whitespace-pre-wrap">{generatedCode}</pre>
+
+            {/* Error */}
+            {aiError && (
+              <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
+                <Icon name="AlertCircle" size={32} style={{ color: "rgba(255,100,100,0.5)" }} />
+                <p className="font-ibm text-sm" style={{ color: "rgba(255,100,100,0.7)" }}>{aiError}</p>
+              </div>
+            )}
+
+            {/* Game running */}
+            {gameRunning && generatedCode && (
+              <div className="relative w-full h-full bg-black">
+                <canvas id="gameCanvas" width={560} height={400} className="w-full h-full" style={{ display: "block" }} />
+                <GameRunner code={generatedCode} />
+                <button
+                  onClick={() => setGameRunning(false)}
+                  className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center clip-corner-sm bg-black/60 hover:bg-black/80 transition-colors"
+                  style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.6)" }}
+                >
+                  <Icon name="X" size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* Code view */}
+            {generatedCode && !gameRunning && !isGenerating && (
+              <pre className="p-6 font-mono text-xs text-white/70 leading-relaxed whitespace-pre-wrap">{generatedCode}</pre>
             )}
           </div>
-          {generatedCode && (
+
+          {generatedCode && !isGenerating && (
             <div className="px-4 py-3 border-t flex gap-3" style={{ borderColor: "rgba(0,255,255,0.1)" }}>
               <button
-                className="flex-1 py-2.5 font-rajdhani font-bold text-sm clip-corner-sm flex items-center justify-center gap-2"
+                onClick={handleRunGame}
+                className="flex-1 py-2.5 font-rajdhani font-bold text-sm clip-corner-sm flex items-center justify-center gap-2 transition-all"
                 style={{ background: "linear-gradient(135deg, #00ffff, #0088ff)", color: "#000" }}
               >
                 <Icon name="Play" size={16} />
-                Запустить
+                {gameRunning ? "Перезапустить" : "Запустить"}
               </button>
               <button
+                onClick={() => {
+                  const blob = new Blob([generatedCode], { type: "text/javascript" });
+                  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+                  a.download = "nexgen_game.js"; a.click();
+                }}
                 className="flex-1 py-2.5 font-rajdhani font-semibold text-sm clip-corner-sm border flex items-center justify-center gap-2 hover:bg-white/5 transition-colors"
                 style={{ borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)" }}
               >
@@ -146,4 +227,26 @@ export default function SectionEditor({
       </div>
     </div>
   );
+}
+
+function GameRunner({ code }: { code: string }) {
+  const runGame = (canvas: HTMLCanvasElement | null) => {
+    if (!canvas) return;
+    try {
+      const fn = new Function("document", "window", code);
+      fn(
+        { getElementById: (id: string) => id === "gameCanvas" ? canvas : null },
+        window
+      );
+    } catch (e) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "rgba(255,100,100,0.7)";
+        ctx.font = "14px monospace";
+        ctx.fillText("Ошибка выполнения: " + String(e), 10, 30);
+      }
+    }
+  };
+
+  return <canvas ref={runGame} id="gameCanvas" width={560} height={400} style={{ display: "none" }} />;
 }
