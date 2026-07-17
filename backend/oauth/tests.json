@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "No provider returns error",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 400,
+      "expectedBody": {"error": "Не указан provider"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Unknown provider redirects with error",
+      "method": "GET",
+      "path": "/?provider=unknown&redirect_uri=https://example.com",
+      "expectedStatus": 400
+    }
+  ]
+}

@@ -1,14 +1,21 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, OAuthProvider } from "@/context/AuthContext";
 
 interface AuthModalProps {
   onClose: () => void;
   defaultTab?: "login" | "register";
 }
 
+const SOCIAL_PROVIDERS: { id: OAuthProvider; label: string; color: string; letter: string }[] = [
+  { id: "google", label: "Google", color: "#ffffff", letter: "G" },
+  { id: "yandex", label: "Яндекс", color: "#ff0000", letter: "Я" },
+  { id: "facebook", label: "Facebook", color: "#1877f2", letter: "f" },
+  { id: "vk", label: "VK", color: "#0077ff", letter: "VK" },
+];
+
 export default function AuthModal({ onClose, defaultTab = "login" }: AuthModalProps) {
-  const { login, register } = useAuth();
+  const { login, register, loginWithProvider, oauthError, clearOauthError } = useAuth();
   const [tab, setTab] = useState<"login" | "register">(defaultTab);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -151,6 +158,40 @@ export default function AuthModal({ onClose, defaultTab = "login" }: AuthModalPr
             </button>
           </p>
         </form>
+
+        {/* Social login */}
+        <div className="px-6 pb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
+            <span className="font-mono text-xs text-white/25 uppercase tracking-wider">или через</span>
+            <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
+          </div>
+
+          {oauthError && (
+            <div className="flex items-center gap-2 px-3 py-2.5 border mb-3" style={{ borderColor: "rgba(255,0,0,0.3)", background: "rgba(255,0,0,0.06)", color: "#ff6666" }}>
+              <Icon name="AlertCircle" size={14} />
+              <span className="font-ibm text-xs flex-1">{oauthError}</span>
+              <button type="button" onClick={clearOauthError} className="text-white/30 hover:text-white/60">
+                <Icon name="X" size={12} />
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-4 gap-2">
+            {SOCIAL_PROVIDERS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => loginWithProvider(p.id)}
+                title={p.label}
+                className="flex items-center justify-center py-3 border clip-corner-sm transition-all hover:bg-white/5"
+                style={{ borderColor: "rgba(255,255,255,0.12)" }}
+              >
+                <span className="font-rajdhani font-bold text-sm" style={{ color: p.color }}>{p.letter}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import SectionHome from "@/components/SectionHome";
 import SectionEditor from "@/components/SectionEditor";
@@ -7,15 +7,24 @@ import SectionDocs from "@/components/SectionDocs";
 import SectionCommunity from "@/components/SectionCommunity";
 import SectionFaq from "@/components/SectionFaq";
 import AuthModal from "@/components/AuthModal";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 function AppContent() {
   const [activeSection, setActiveSection] = useState("home");
   const [authModal, setAuthModal] = useState<{ open: boolean; tab: "login" | "register" }>({ open: false, tab: "login" });
+  const { user, oauthError } = useAuth();
 
   const openAuth = (tab: "login" | "register" = "login") => {
     setAuthModal({ open: true, tab });
   };
+
+  useEffect(() => {
+    if (user) setAuthModal((m) => ({ ...m, open: false }));
+  }, [user]);
+
+  useEffect(() => {
+    if (oauthError) setAuthModal({ open: true, tab: "login" });
+  }, [oauthError]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">

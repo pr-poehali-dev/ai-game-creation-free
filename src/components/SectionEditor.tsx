@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { neonColors, NeonLabel, SectionTitle } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 
-const AI_GENERATE_URL = "https://functions.poehali.dev/39359649-61a8-4745-836e-a40e41f69c3a";
+const AI_GENERATE_URL = "https://functions.poehali.dev/a7661715-663d-4e2e-9c76-ad4f9f393fa4";
 
 interface SectionEditorProps {
   onAuthOpen: (tab?: "login" | "register") => void;
@@ -181,7 +181,6 @@ export default function SectionEditor({ onAuthOpen }: SectionEditorProps) {
             {/* Game running */}
             {gameRunning && generatedCode && (
               <div className="relative w-full h-full bg-black">
-                <canvas id="gameCanvas" width={560} height={400} className="w-full h-full" style={{ display: "block" }} />
                 <GameRunner code={generatedCode} />
                 <button
                   onClick={() => setGameRunning(false)}
@@ -230,7 +229,10 @@ export default function SectionEditor({ onAuthOpen }: SectionEditorProps) {
 }
 
 function GameRunner({ code }: { code: string }) {
-  const runGame = (canvas: HTMLCanvasElement | null) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
     if (!canvas) return;
     try {
       const fn = new Function("document", "window", code);
@@ -246,7 +248,8 @@ function GameRunner({ code }: { code: string }) {
         ctx.fillText("Ошибка выполнения: " + String(e), 10, 30);
       }
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 
-  return <canvas ref={runGame} id="gameCanvas" width={560} height={400} style={{ display: "none" }} />;
+  return <canvas ref={canvasRef} id="gameCanvas" width={560} height={400} className="w-full h-full" style={{ display: "block" }} />;
 }

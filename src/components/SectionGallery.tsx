@@ -63,7 +63,7 @@ export default function SectionGallery({ onAuthOpen }: SectionGalleryProps) {
                   {game.plays} играют
                 </div>
                 <button
-                  onClick={() => !user && onAuthOpen("login")}
+                  onClick={() => { if (!user) onAuthOpen("login"); }}
                   className="font-ibm text-xs px-3 py-1 clip-corner-sm flex items-center gap-1 transition-all"
                   style={{ background: `${neonColors[game.color]}20`, color: neonColors[game.color] }}
                 >
